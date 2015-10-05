@@ -261,27 +261,27 @@ mis
 ```
 
 
-lhs       op   rhs             mi      epc   sepc.all   power  decision 
---------  ---  --------  --------  -------  ---------  ------  ---------
-CSTRAT    ~    READING    4029.41   -24.68      -2.32    0.06  **(m)**  
-MEMO      ~    CSTRAT     1985.36     0.62       0.64    1.00  *epc:m*  
-CSTRAT    ~    MEMO       1966.56     0.62       0.61    1.00  *epc:m*  
-ELAB      ~    CSTRAT     1767.62     0.60       0.61    1.00  *epc:m*  
-CSTRAT    ~    ELAB       1767.62     0.58       0.58    1.00  *epc:m*  
-MEMO      ~    ELAB       1116.61     0.46       0.47    1.00  *epc:m*  
-ELAB      ~    MEMO       1103.58     0.47       0.47    1.00  *epc:m*  
-MEMO      ~    READING     819.02     8.25       0.80    0.06  **(m)**  
-READING   ~    ESCS        616.03     0.03       0.29    1.00  epc:nm   
-ESCS      ~    READING     560.51     3.45       0.40    0.11  **(m)**  
-ELAB      ~    READING     253.71     4.26       0.40    0.07  **(m)**  
-GENDER    ~    READING      75.51     0.71       0.15    0.23  **(m)**  
-READING   ~    GENDER       68.56     0.02       0.10    1.00  epc:nm   
-READING   ~    IMMIGR       38.77    -0.02      -0.07    1.00  epc:nm   
-IMMIGR    ~    MEMO         19.37     0.02       0.06    1.00  epc:nm   
-MEMO      ~    IMMIGR       19.37     0.18       0.06    0.69  **(m)**  
-ESCS      ~    MEMO         19.37     0.17       0.20    0.74  **(m)**  
-GENDER    ~    MEMO         19.34    -3.45      -7.57    0.05  **(m)**  
-IMMIGR    ~    READING       0.29    -0.03      -0.01    0.41  (i)      
+|lhs     |op |rhs     |      mi|    epc| sepc.all| power|decision |
+|:-------|:--|:-------|-------:|------:|--------:|-----:|:--------|
+|CSTRAT  |~  |READING | 4029.41| -24.68|    -2.32|  0.06|**(m)**  |
+|MEMO    |~  |CSTRAT  | 1985.36|   0.62|     0.64|  1.00|*epc:m*  |
+|CSTRAT  |~  |MEMO    | 1966.56|   0.62|     0.61|  1.00|*epc:m*  |
+|ELAB    |~  |CSTRAT  | 1767.62|   0.60|     0.61|  1.00|*epc:m*  |
+|CSTRAT  |~  |ELAB    | 1767.62|   0.58|     0.58|  1.00|*epc:m*  |
+|MEMO    |~  |ELAB    | 1116.61|   0.46|     0.47|  1.00|*epc:m*  |
+|ELAB    |~  |MEMO    | 1103.58|   0.47|     0.47|  1.00|*epc:m*  |
+|MEMO    |~  |READING |  819.02|   8.25|     0.80|  0.06|**(m)**  |
+|READING |~  |ESCS    |  616.03|   0.03|     0.29|  1.00|epc:nm   |
+|ESCS    |~  |READING |  560.51|   3.45|     0.40|  0.11|**(m)**  |
+|ELAB    |~  |READING |  253.71|   4.26|     0.40|  0.07|**(m)**  |
+|GENDER  |~  |READING |   75.51|   0.71|     0.15|  0.23|**(m)**  |
+|READING |~  |GENDER  |   68.56|   0.02|     0.10|  1.00|epc:nm   |
+|READING |~  |IMMIGR  |   38.77|  -0.02|    -0.07|  1.00|epc:nm   |
+|IMMIGR  |~  |MEMO    |   19.37|   0.02|     0.06|  1.00|epc:nm   |
+|MEMO    |~  |IMMIGR  |   19.37|   0.18|     0.06|  0.69|**(m)**  |
+|ESCS    |~  |MEMO    |   19.37|   0.17|     0.20|  0.74|**(m)**  |
+|GENDER  |~  |MEMO    |   19.34|  -3.45|    -7.57|  0.05|**(m)**  |
+|IMMIGR  |~  |READING |    0.29|  -0.03|    -0.01|  0.41|(i)      |
 
 We can make huge changes by adding more paths among the endogenous variables. I
 am very conservative about making the pathways among the endogenous variables
@@ -464,10 +464,10 @@ anova(m1_fit, m2_fit)
 ```
 
 
-Model     Df        AIC        BIC       Chisq   Chisq diff   Df diff   Pr(>Chisq)
--------  ---  ---------  ---------  ----------  -----------  --------  -----------
-m2_fit     5   56089.20   56239.34    888.2283           NA        NA           NA
-m1_fit     7   60782.33   60919.41   5585.3539     4697.126         2            0
+|Model  | Df|      AIC|      BIC|     Chisq| Chisq diff| Df diff| Pr(>Chisq)|
+|:------|--:|--------:|--------:|---------:|----------:|-------:|----------:|
+|m2_fit |  5| 56089.20| 56239.34|  888.2283|         NA|      NA|         NA|
+|m1_fit |  7| 60782.33| 60919.41| 5585.3539|   4697.126|       2|          0|
 
 The BIC says that the more complex model is preferred. Its paths are worth the
 loss in degrees of freedom.
@@ -501,17 +501,15 @@ Summary statistics and variable descriptions are provided in Table 1. The model
 under question is depicted in Fig 1.
 
 
-Table: Table 1. Variable names and descriptive statistics^a^
-
-Names^b^         Min     Max     Mean    Std.     Skew   Kurtosis^c^
------------  -------  ------  -------  ------  -------  ------------
-CSTRAT        -3.453   2.504   -0.044   1.128   -0.356         1.313
-ELAB          -2.410   2.757   -0.091   1.112   -0.060         0.271
-MEMO          -3.019   2.693   -0.043   1.098   -0.275         1.063
-READING^d^     0.156   0.772    0.500   0.094   -0.085        -0.342
-ESCS          -3.423   2.891    0.158   0.920   -0.245        -0.058
-GENDER         0.000   1.000    0.488   0.500    0.048        -1.998
-IMMIGR         0.000   1.000    0.192   0.394    1.567         0.456
+|Names^b^   |    Min|   Max|   Mean|  Std.|   Skew| Kurtosis^c^|
+|:----------|------:|-----:|------:|-----:|------:|-----------:|
+|CSTRAT     | -3.453| 2.504| -0.044| 1.128| -0.356|       1.313|
+|ELAB       | -2.410| 2.757| -0.091| 1.112| -0.060|       0.271|
+|MEMO       | -3.019| 2.693| -0.043| 1.098| -0.275|       1.063|
+|READING^d^ |  0.156| 0.772|  0.500| 0.094| -0.085|      -0.342|
+|ESCS       | -3.423| 2.891|  0.158| 0.920| -0.245|      -0.058|
+|GENDER     |  0.000| 1.000|  0.488| 0.500|  0.048|      -1.998|
+|IMMIGR     |  0.000| 1.000|  0.192| 0.394|  1.567|       0.456|
 
 ^a.^ _n_ = 5053. \ 
 ^b.^ CSTRAT, extent to which student pre-reads or uses
@@ -554,23 +552,21 @@ _R_^2^ = .14.
 
 
 
-Table: Table 2. Parameter estimates from final model.
-
-                            Est      SE         z        p
---------  ---  -------  -------  ------  --------  -------
-CSTRAT    on   ESCS       0.272   0.017    15.575   < .001
-               GENDER     0.287   0.031     9.339   < .001
-               IMMIGR     0.238   0.041     5.833   < .001
-ELAB      on   ESCS      -0.023   0.015    -1.579    0.114
-               GENDER    -0.201   0.025    -7.960   < .001
-               IMMIGR     0.023   0.033     0.702    0.483
-               CSTRAT     0.598   0.011    52.141   < .001
-MEMO      on   ESCS      -0.116   0.013    -8.773   < .001
-               GENDER     0.045   0.024     1.877    0.061
-               CSTRAT     0.624   0.011    57.186   < .001
-READING   on   MEMO      -0.026   0.001   -18.501   < .001
-               ELAB      -0.015   0.001   -11.111   < .001
-               CSTRAT     0.045   0.002    28.400   < .001
+|        |   |       |    Est|    SE|       z|      p|
+|:-------|:--|:------|------:|-----:|-------:|------:|
+|CSTRAT  |on |ESCS   |  0.272| 0.017|  15.575| < .001|
+|        |   |GENDER |  0.287| 0.031|   9.339| < .001|
+|        |   |IMMIGR |  0.238| 0.041|   5.833| < .001|
+|ELAB    |on |ESCS   | -0.023| 0.015|  -1.579|  0.114|
+|        |   |GENDER | -0.201| 0.025|  -7.960| < .001|
+|        |   |IMMIGR |  0.023| 0.033|   0.702|  0.483|
+|        |   |CSTRAT |  0.598| 0.011|  52.141| < .001|
+|MEMO    |on |ESCS   | -0.116| 0.013|  -8.773| < .001|
+|        |   |GENDER |  0.045| 0.024|   1.877|  0.061|
+|        |   |CSTRAT |  0.624| 0.011|  57.186| < .001|
+|READING |on |MEMO   | -0.026| 0.001| -18.501| < .001|
+|        |   |ELAB   | -0.015| 0.001| -11.111| < .001|
+|        |   |CSTRAT |  0.045| 0.002|  28.400| < .001|
 
 
 ### Discussion
