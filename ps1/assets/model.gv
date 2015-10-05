@@ -1,0 +1,51 @@
+digraph SEM {
+  graph [layout = neato, overlap = true, fontname = "Helvetica"]
+
+  node [shape = rectangle]
+  escs [pos = '-3.5,8!']
+  gender [pos = '-3,7!']
+  immigr [pos = '-3.5,6!']
+
+  memo [pos = '-1,8!']
+  elab [pos = '-1,7!']
+  cstrat [pos = '-1,6!']
+
+  reading [pos = "1,7!"]
+
+  # Covariances
+  edge [dir = "both", style = "dashed"]
+  escs -> gender
+  gender -> immigr
+  escs -> immigr
+
+  # Regressions
+  edge [dir = "forward", headport = "_", tailport = "e", style = "solid"]
+  escs -> memo
+  gender -> memo
+
+  escs -> elab
+  gender -> elab
+  immigr -> elab
+
+  escs -> cstrat [headport = "nw"]
+  gender -> cstrat [headport = "w"]
+  immigr -> cstrat [headport = "sw"]
+
+  memo -> reading
+  elab -> reading
+  cstrat -> reading
+
+  # edges from invisible nodes for disturbances
+  node [label = "", style = "invis", width = 0, height = 0]
+  d1 [pos = "-.5, 8.5!"]
+  d2 [pos = "-.5, 7.5!"]
+  d3 [pos = "-.5, 6.5!"]
+  d4 [pos = "1.5, 7.5!"]
+  edge [headport = "ne", tailport = "sw"]
+  d1 -> memo
+  d2 -> elab
+  d3 -> cstrat
+  d4 -> reading
+}
+
+

@@ -1,0 +1,391 @@
+---
+title: "Problem Set 1"
+author: "Tristan Mahr"
+date: "February 26, 2015"
+output: 
+  html_document: 
+    fig_caption: yes
+    keep_md: yes
+    css: assets/custom.css
+csl: assets/apa.csl
+bibliography: assets/ps1.bib
+---
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library("knitr")
+opts_chunk$set(warning = FALSE, message = FALSE, fig.path = "assets/figure/")
+if (interactive()) setwd("ps1")
+```
+
+***
+
+## Part 1: Responses to Individual Questions
+
+### Provide three indications that the model in the figure is identified
+
+```{r, eval = FALSE, echo = FALSE}
+# To render directly from the model graphviz file
+DiagrammeR::grViz("assets/model.gv")
+```
+
+![](assets/model.png)
+
+1. The model satisfies two **prerequisites for regression**: 1) latent variables
+(and disturbances) have a scale and 2) paths among the endogenous variables are
+normalized, meaning that no endogenous variable has a direct effect on itself.
+
+2. The model satisfies the **counting rule** (a necessary condition for
+identification). There are 7 variables in the model, so there are (7 * 8) / 2 =
+28 elements in the lower triangle and diagonal of the covariance matrix. This
+model has 21 free parameters, so there are 7 degrees of freedom. This model is
+therefore overidentified.
+
+3. Most importantly, this model is **recursive**, meaning that the there are no
+feedback loops among the endogenous variables nor are there paths connecting the
+disturbances of the endogenous variables. In matrix terminology, the values to
+be estimated in **B** are in the lower triangle of the matrix and covariance
+matrix for the disturbances is a diagonal matrix. Recursive models are
+identified.
+
+This model is an overidentified recursive model, so it is identified.
+
+
+### Determine if the data meet the assumptions of multivariate normality. Provide evidence to support your conclusion.
+
+```{r}
+options(stringsAsFactors = FALSE)
+library("psych")
+library("MVN")
+library("dplyr")
+
+# The pipe operator %>% from dplyr means use the value on the lefthand side as
+# the first parameter to the function on its righthand side. So x %>% f(y) is
+# the same as f(x, y)
+d <- read.csv("data/pisa09.csv", na.strings = "9999") %>%
+  # Listwise deletion
+  na.omit %>%
+  # lavaan raises warnings about the scale of READING later so rescale it
+  mutate(READING = READING / 1000)
+```
+
+We use the Mardia statistic to test multivariate normality. The `MVN`
+implementation spells out the interpretation of the test in plain English,
+whereas the `psych` package's implementation includes a helpful Q-Q plot.
+
+```{r mardia tests, fig.height=4, fig.width=4}
+MVN::mardiaTest(d)
+psych_mardia <- psych::mardia(d, plot = TRUE)
+```
+
+Clearly, the data are not multivariate normal.
+
+```{r, echo = FALSE}
+# Generate summary statistics for write-up later on
+descriptives <- describe(d) %>%
+  # Match formatting of table 2.1 on p.27
+  add_rownames("Names") %>%
+  select(Names, Min = min, Max = max, Mean = mean,
+         `Std.` = sd, Skew = skew, Kurtosis = kurtosis)
+```
+
+```{r, echo = FALSE}
+# Pre-format the mardia test right now for the write-up
+mard_results <- psych::mardia(d, plot = FALSE)
+mard_line <- sprintf("%s = %.2f (_z_ = %.2f, _p_ < .001)",
+                     "Mardia's coefficient of multivariate kurtosis",
+                     mard_results$b2p, mard_results$kurtosis)
+```
+
+
+### Estimate the model using ML. Compute all indirect and total effects in the
+model.
+
+```{r}
+library("lavaan")
+# Manually label each path so that the indirect effects can be calculated. To
+# make things more manageable, format path from SOURCE to TARGET as "so_ta"
+m1 <- "
+  READING ~ me_re*MEMO + el_re*ELAB + cs_re*CSTRAT
+
+  # Mediators
+  CSTRAT ~ es_cs*ESCS + ge_cs*GENDER + im_cs*IMMIGR
+    ELAB ~ es_el*ESCS + ge_el*GENDER + im_el*IMMIGR
+    MEMO ~ es_me*ESCS + ge_me*GENDER
+
+  # Indirect effects
+  ge_via_me := ge_me*me_re
+  ge_via_el := ge_el*el_re
+  ge_via_cs := ge_cs*cs_re
+
+  es_via_me := es_me*me_re
+  es_via_el := es_el*el_re
+  es_via_cs := es_cs*cs_re
+
+  im_via_el := im_el*el_re
+  im_via_cs := im_cs*cs_re
+
+  # Total effects
+  ge_total := ge_via_me + ge_via_el + ge_via_cs
+  es_total := es_via_me + es_via_el + es_via_cs
+  im_total := im_via_el + im_via_cs
+"
+ m1_fit <- sem(m1, d, estimator = "ML", fixed.x = FALSE)
+```
+
+
+### Provide evidence of the fit (or lack thereof) of the model.
+
+```{r}
+summary(m1_fit, fit.measures = TRUE, rsquare = TRUE)
+```
+
+The fit measures are terrible, as noted in the write-up below.
+
+
+### Modify the model using the modification indices and expected parameter change
+statistics. Justify the modification on substantive grounds.
+
+```{r, results = "hide"}
+mis <- m1_fit %>% 
+   modindices(power = TRUE) %>%
+  # Ignore covariances and trivial modifications
+  filter(0 < mi, op != "~~") %>%
+  select(-delta, -ncp) %>%
+  arrange(desc(mi))
+mis
+```
+
+```{r, echo = FALSE}
+mis %>% kable(digits = 2)
+```
+
+We can make huge changes by adding more paths among the endogenous variables. I
+am very conservative about making the pathways among the endogenous variables
+more complex, and I don't think these data support a non-recursive model
+structure--or at least, such a model would be incredibly difficult to interpet.
+That rules out the CSTRAT~READING path. 
+
+_Begins waving hands_. It makes sense that readers who pre-read (CSTRAT) would
+be less likely to memorise (MEMO) or more likely to elaborate (ELAB), so we can
+rationalize the CSTRAT~MEMO and CSTRAT~ELAB paths. Those two parameters should
+take big bites out of the test statistic.
+
+```{r}
+# Add CSTRAT~MEMO and CSTRAT~ELAB (and related indirect) paths to the model
+m2 <- "
+  READING ~ me_re*MEMO + el_re*ELAB + cs_re*CSTRAT
+
+  # Mediators
+  CSTRAT ~ es_cs*ESCS + ge_cs*GENDER + im_cs*IMMIGR
+    ELAB ~ es_el*ESCS + ge_el*GENDER + im_el*IMMIGR + cs_el*CSTRAT
+    MEMO ~ es_me*ESCS + ge_me*GENDER + cs_me*CSTRAT
+
+  # One-step indirect effects
+  ge_me_re := ge_me*me_re
+  ge_el_re := ge_el*el_re
+  ge_cs_re := ge_cs*cs_re
+
+  es_me_re := es_me*me_re
+  es_el_re := es_el*el_re
+  es_cs_re := es_cs*cs_re
+
+  im_el_re := im_el*el_re
+  im_cs_re := im_cs*cs_re
+
+  # Shortcuts for the two-step indirects
+  cs_me_re := cs_me*me_re
+  cs_el_re := cs_el*el_re
+
+  # Two-step indirect effects
+  es_cs_me_re := es_cs*cs_me_re
+  ge_cs_me_re := ge_cs*cs_me_re
+  im_cs_me_re := im_cs*cs_me_re
+
+  es_cs_el_re := es_cs*cs_el_re
+  ge_cs_el_re := ge_cs*cs_el_re
+  im_cs_el_re := im_cs*cs_el_re
+
+  # Total effects
+  ge_total := ge_me_re + ge_el_re + ge_cs_re + ge_cs_me_re + ge_cs_el_re
+  es_total := es_me_re + es_el_re + es_cs_re + es_cs_me_re + es_cs_el_re
+  im_total := im_el_re + im_cs_re +            im_cs_me_re + im_cs_el_re
+"
+# I wonder if this exercise is conditioning us not to use mod-indices by making
+# us write all these indirect effects.
+m2_fit <- sem(m2, d, estimator = "ML", fixed.x = FALSE)
+summary(m2_fit, fit.measures = TRUE, rsquare = TRUE)
+```
+
+
+### Choose a final model based on the BIC.
+
+```{r, eval = FALSE}
+anova(m1_fit, m2_fit)
+```
+
+```{r, echo = FALSE}
+anova(m1_fit, m2_fit) %>% add_rownames("Model") %>% kable
+```
+
+The BIC says that the more complex model is preferred. Its paths are worth the
+loss in degrees of freedom.
+
+
+### Write-up Instructions
+
+* Provide a full discussion of the substantive conclusions based on the model, 
+including model fit and interpretation of the significant direct, indirect, and 
+total effects in the model.
+* Please provide a write-up in the form of a “methods”, “results”, and 
+“discussion” section in a style consistent with your major field (e.g. APA).
+
+
+***
+
+## Part 2: Write-up
+
+### Method
+
+We hypothesized that the effect of students' socio-economic status, gender and 
+immigrant status on reading competency would be mediated by the students' 
+approaches to learning, specifically their tendencies to learn texts by 
+memorization, relating material to experiences outside the text, and 
+pre-reading.
+
+We tested our hypothesis by performing a path analysis using `lavaan` [vers. 
+`r packageVersion("lavaan")`; @lavaan] with maximum likelihood estimation. We 
+analyzed data from _n_ = `r nrow(d)` United States students in the 2009 PISA. 
+Summary statistics and variable descriptions are provided in Table 1. The model 
+under question is depicted in Fig 1.
+
+```{r, results='asis', echo = FALSE}
+t_cap <- "Table 1. Variable names and descriptive statistics^a^"
+descriptives %>%
+  mutate(Names = ifelse(Names == "READING", "READING^d^", Names)) %>%
+  rename(`Names^b^` = Names,
+         `Kurtosis^c^` = Kurtosis) %>%
+  kable(caption = t_cap, digits = 3)
+```
+
+^a.^ _n_ = `r nrow(d)`. \ 
+^b.^ CSTRAT, extent to which student pre-reads or uses
+other _control strategies_ when reading; ELAB, extent to which student tries to
+_elaborate_ or relate the reading material to other subjects or situations;
+MEMO, extent to which student tries to _memorize_ content when reading;
+READING, index of reading competency; ESCS, index of economic, social and
+cultural status; GENDER of student, 0 for male, 1 for female; IMMIGR,
+_immigrant_ status of the student, 0 for native students with at least one
+parent born in the country, 1 otherwise. \ 
+^c.^ `r mard_line`. \ 
+^d.^ Raw READING scores were rescaled by dividing by 1000.
+
+
+```{r hypothesized model fig, fig.width=5, fig.height=4, fig.cap="Fig 1. Hypothesized model.", echo = FALSE}
+library("semPlot")
+semPaths(m1_fit, edgeLabels = "", rotation = 2,
+         curvature = 2, layout = "tree2")
+```
+
+```{r, echo = FALSE}
+fits <- fitmeasures(m1_fit) %>% round(2) %>% as.list
+fits2 <- fitmeasures(m2_fit) %>% round(2) %>% as.list
+comp <- anova(m1_fit, m2_fit)[2, ] %>% round(2) %>% as.list
+```
+
+
+### Results
+
+The hypothesized model did not provide an overall adequate fit of the data,
+_&chi;_^2^(`r fits$df`) = `r fits$chisq`, _p_ < .001, CFI = `r fits$cfi`, RMSEA
+CI = [`r fits$rmsea.ci.lower`,`r fits$rmsea.ci.upper`]. Therefore, we used a
+post hoc analysis to determine which paths would improve model fit
+substantially. We added paths from CSTRAT to MEMO and ELAB on the grounds that
+the top-down control strategies that would affect the role of the other
+approaches to reading and learning. The updated model is shown in Figure 2.
+
+```{r revised model fig, echo = FALSE, fig.width=5, fig.height=4, fig.cap="Fig 2. Revised model."}
+semPaths(m2_fit, edgeLabels = "", rotation = 2,
+         curvature = 2, layout = "tree2")
+```
+
+The two added paths significantly improved model fit 
+&Delta;_&chi;_^2^(`r comp["Df diff"]`) = `r comp["Chisq diff"]`, _p_ < .001, 
+although the overall fit of this model was less than adequate, 
+_&chi;_^2^(`r fits2$df`) = `r fits2$chisq`, _p_ < .001, CFI = `r fits2$cfi`, 
+RMSEA CI = [`r fits2$rmsea.ci.lower`,`r fits2$rmsea.ci.upper`].  Nearly all of 
+the paths in the final model were significant, as shown in Table 2, although
+this model accounts for a small amount of the variance in the reading scores,
+_R_^2^ = .14.
+
+
+```{r, echo = FALSE, results = "asis"}
+# Create a table of regression estimates
+fits <- m2_fit %>%
+  parameterEstimates(fmi = FALSE, ci = FALSE) %>%
+  filter(op == "~") %>%
+  mutate(op = "on") %>%
+  select(-label, Est = est, SE = se, z, p = pvalue) %>%
+  arrange(lhs)
+
+# Blank out duplicated lhs-op entries for a prettier table:
+#   lhs | op | rhs  ->  lhs | op | rhs
+#   ----|----|----  ->  ----|----|----
+#   x   | y  | a    ->  x   | y  | a
+#   x   | y  | b    ->      |    | b
+#   x   | y  | c    ->      |    | c
+for (row in seq_len(nrow(fits))) {
+  if (row == 1) next;
+
+  if (any(fits[row, "lhs"] == fits[1:(row - 1) , "lhs"])) {
+    fits[row, "lhs"] <- ""
+    fits[row, "op"] <- ""
+  }
+}
+
+# Pretty p's
+fits <- fits %>% 
+  mutate(p = round(p, 3), 
+         p = ifelse(p < 0.001, "< .001", p))
+
+# Blank out names of first three columns
+names(fits)[1:3] <- ""
+
+t_cap <- "Table 2. Parameter estimates from final model."
+kable(fits, digits = 3, caption = t_cap,
+      align = c(rep("l", 3), rep("r", 4)))
+```
+
+
+### Discussion
+
+The direct effects in Table 2 are relatively straightforward to interpret. Each
+of the three strategies were significantly related to reading competence, but
+only the control strategies had a positive effect on reading.
+
+Female students showed greater use of control strategies and less use of
+elaboration. The effect of gender on memorization only approached significance.
+Students from immigrant families showed greater use of control strategies, and
+immigration status had no effect on use of elaboration strategies.
+
+Socioeconomic status was significantly related two of learning approaches such
+that higher ESCS students showed increase use of control strategies and reduced
+reliance on memorization. Elaboration was not related to ESCS.
+
+Students who used more control strategies also used more elaboration and
+memorization overall. This finding is surprising because it shows that the
+learning approaches are not at odds with each other; there do not seem to be
+trading relations among the approaches where an increase in one comes at the
+expense in other. Further work on the relationship among the approachs seems
+warranted.
+
+The indirect or mediated effects are also of interest. The effect of gender was
+mediated by elaboration and control strategies, but not for memorization. The
+effect of ESCS was mediated by memorization and control strategies. Finally,
+the effect of immigration on reading was mediated by control strategies.
+
+These effects present a picture of learning in which a student's gender and
+home experience lead them to favor different attitudes and approaches to
+learning which in turn affect their reading competence. Indeed, the total
+effect of gender, immigrant status and ESCS were all significant.
+
+### References
