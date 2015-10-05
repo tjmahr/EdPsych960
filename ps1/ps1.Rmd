@@ -6,18 +6,18 @@ output:
   html_document: 
     css: assets/custom.css
     fig_caption: yes
-    keep_md: yes
+    keep_md: no
   md_document:
     variant: markdown_github
 csl: assets/apa.csl
 bibliography: assets/ps1.bib
 ---
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, error = FALSE}
 library("knitr")
 opts_chunk$set(warning = FALSE, message = FALSE, fig.path = "assets/figure/")
 options(knitr.table.format = "markdown")
-if (interactive()) setwd("ps1")
+if (interactive()) try(setwd("ps1"))
 ```
 
 ***
