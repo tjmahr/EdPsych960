@@ -1,4 +1,5 @@
 digraph SEM {
+  # Based on http://stackoverflow.com/a/29422752/1084259
   graph [layout = neato, overlap = true, fontname = "Helvetica"]
 
   node [shape = rectangle]
