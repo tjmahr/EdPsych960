@@ -1,0 +1,93 @@
+---
+
+test: 
+  stem: "Below are statements about your management of this school. Please indicate the frequency of the following activities and behaviors in your school during the last academic year. (Please tick only one box in each row.)"
+  choices: 
+    - {level: Did not occur, value: 1}
+    - {level: 1-2 times during the year, value: 2}
+    - {level: 3-4 times during the year, value: 3}
+    - {level: Once a month, value: 4}
+    - {level: Once a week, value: 5}
+    - {level: More than once a week, value: 6}
+
+item_codes:
+  - code: enhance-reputation
+    item: Q01
+    text: I work to enhance the school's reputation in the community.
+  
+  - code: performance-informs-goals
+    item: Q02
+    text: I use student performance results to develop the school's educational goals.
+  
+  - code: prof-dev-follow-goals
+    item: Q03
+    text: I make sure that the professional development activities of teachers are in accordance with the teaching goals of the school.
+  
+  - code: teachers-follow-goals
+    item: Q04
+    text: I ensure that teachers work according to the school's educational goals.
+  
+  - code: research-based-teaching
+    item: Q05
+    text: I promote teaching practices based on recent educational research.
+  
+  - code: praise-when-students-active
+    item: Q06
+    text: I praise teachers whose students are actively participating in learning.
+  
+  - code: discuss-problems
+    item: Q07
+    text: When a teacher has problems in his/her classroom, I take the initiative to discuss matters.
+  
+  - code: develop-socially
+    item: Q08
+    text: I draw teachers' attention to the importance of pupils' development of critical and social capacities.
+  
+  - code: disrupt-behavior
+    item: Q09
+    text: I pay attention to disruptive behavior in classrooms.
+  
+  - code: staff-help-decide
+    item: Q10
+    text: I provide staff with opportunities to participate in school decision making.
+  
+  - code: continuous-improvement
+    item: Q11
+    text: I engage teachers to help build a school culture of continuous improvement.
+  
+  - code: teachers-review-management
+    item: Q12
+    text: I ask teachers to participate in reviewing management practices.
+  
+  - code: solve-problems-together
+    item: Q13
+    text: When a teacher brings up a classroom problem, we solve the problem together.
+  
+  - code: goals-inform-meetings
+    item: Q14
+    text: I discuss the school's academic goals with teachers at faculty meetings.
+  
+  - code: goals-inform-curriculum
+    item: Q15
+    text: I refer to the school's academic goals when making curricular decisions with teachers.
+  
+  - code: attend-in-services
+    item: Q17
+    text: I lead or attend in-service activities concerned with instruction.
+  
+  - code: teachers-share-ideas
+    item: Q18
+    text: I set aside time at faculty meetings for teachers to share ideas or information from ins-service activities.
+  
+  - code: informal-observation
+    item: Q19
+    text: I conduct informal observations in classrooms on a regular basis (informal observations are unscheduled, last at least 5 minutes, and may or may not involve written feedback or a formal conference).
+  
+  - code: review-student-work
+    item: Q20
+    text: I review work produced by students when evaluating classroom instruction.
+  
+  - code: evaluate-staff-performance
+    item: Q22
+    text: I evaluate the performance of staff.
+...

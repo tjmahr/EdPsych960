@@ -1,0 +1,459 @@
+---
+title: "Problem Set 2"
+author: "Tristan Mahr"
+date: "March 12, 2015"
+output:
+  html_document:
+    fig_caption: yes
+    keep_md: no
+  md_document:
+    variant: markdown_github
+---
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library("knitr")
+opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, 
+               fig.path = "assets/figure/")
+options(knitr.table.format = "markdown")
+if (interactive()) try(setwd("ps2"))
+```
+
+
+```{r code, results = 'hide'}
+options(stringsAsFactors = FALSE)
+library("magrittr")
+library("dplyr")
+library("stringr")
+library("yaml")
+library("knitr")
+library("ggplot2")
+library("semPlot")
+library("psych")
+library("lavaan")
+library("readr")
+
+# Load a codebook. This is used to generate Appendix A and item descriptions.
+code_book <- yaml.load_file("data/ps2_codes.yml")
+item_df <- code_book$item_codes %>%
+  lapply(as_data_frame) %>%
+  bind_rows %>%
+  select(item, code, text)
+
+# Load data, set 999's to NA.
+d_raw <- read_csv("data/pisa12.csv", na = "999")
+
+# Clean up column names
+names(d_raw) <- names(d_raw) %>% str_replace("SC34", "")
+
+# Listwise deletion
+d <- na.omit(d_raw)
+
+## Principal components analysis
+pca <- principal(d, nfactors = 0, rotate = "none")
+eigenvalues <- pca$values
+variances <- print(pca)$Vaccounted["Proportion Var", ]
+
+## Exploratory factor analysis
+
+# DK says we should interpret the factor pattern matrix. help(fa) says "When
+# factor scores are found, should they be based on the structure matrix
+# (default) or the pattern matrix (oblique.scores = TRUE)." So we use the
+# oblique scores in our factor analysis models.
+
+## promax rotation + principal axis factoring
+fa_pa_promax <- function(...) { 
+  fa(..., rotate = "promax", fm = "pa", oblique.scores = TRUE)
+}
+
+fa_1 <- fa_pa_promax(d, nfactors = 1)
+fa_2 <- fa_pa_promax(d, nfactors = 2)
+# Warning message:
+#    A Heywood case was detected.  Examine the loadings carefully.
+fa_3 <- fa_pa_promax(d, nfactors = 3)
+fa_4 <- fa_pa_promax(d, nfactors = 4)
+
+# Drop seventh item. Re-run 2nd and 3rd analyses
+d_minus_7 <- d %>% select(-Q07)
+fa_2 <- fa_pa_promax(d_minus_7, nfactors = 2)
+fa_3 <- fa_pa_promax(d_minus_7, nfactors = 3)
+
+## promax rotation + maximum likelihood
+fa_ml_promax <- function(...) { 
+  fa(..., rotate = "promax", fm = "ml", oblique.scores = TRUE)
+}
+fa_ml_1 <- fa_ml_promax(d, nfactors = 1)
+fa_ml_2 <- fa_ml_promax(d_minus_7, nfactors = 2)
+fa_ml_3 <- fa_ml_promax(d_minus_7, nfactors = 3)
+fa_ml_4 <- fa_ml_promax(d, nfactors = 4)
+
+# Factor correlations and range of correlation values for write-up
+f_cor <- fa_ml_4$score.cor
+f_cor_range <- f_cor[lower.tri(f_cor)] %>% range %>% round(2)
+
+## Make a model comparison table, like `anova(...)` does.
+extract_fits <- function(fa_ml) {
+  fit_measures <- c("factors", "dof", "STATISTIC", "PVAL", "BIC", "RMSEA")
+  fits <- fa_ml[fit_measures]
+  # ignore CIs
+  fits$RMSEA <- fits$RMSEA["RMSEA"]
+  as_data_frame(fits)
+}
+
+model_summary <- list(fa_ml_1, fa_ml_2, fa_ml_3, fa_ml_4) %>% 
+  lapply(extract_fits) %>% 
+  bind_rows %>% 
+  round(2) %>% 
+  mutate(PVAL = ifelse(PVAL < 0.01, "< .01", PVAL))
+
+## Prep for CFA by reducing EFA loadings to simple structure (have each item
+## load onto its primary factor)
+
+# Assign English names to factors (kind of hacky to do this)
+fa_ml_4b <- fa_ml_4
+colnames(fa_ml_4b$loadings) <- c("Culture", "Solving", "Teaching", "Oversight")
+
+# Extract EFA loadings
+efa_loadings <- fa_ml_4b %>% 
+  fa.sort %>%  
+  extract2("loadings") %>% 
+  unclass 
+
+# Assign each item to a primary factor based on its strongest loading
+largest_columns <- apply(efa_loadings, 1, which.max)
+primary_factors <- colnames(efa_loadings)[largest_columns]
+
+# Combine item labels (hidden in row-names of loadings) and primary factors
+primary_df <- efa_loadings %>% 
+  as.data.frame %>%
+  add_rownames("Item") %>% 
+  mutate(Factor = primary_factors) %>% 
+  select(Item, Factor)
+
+# Generate the CFA equation pasting together the items within each factor
+cfa_formula <- primary_df %>% 
+  group_by(Factor) %>% 
+  summarize(RHS = paste(Item, collapse = " + ")) %>% 
+  transmute(equation = sprintf("%s =~ %s", Factor, RHS)) %>% 
+  # Convert from data-frame to single string
+  extract2("equation") %>% 
+  paste0(collapse = "\n")
+
+## CFA
+cfa_fit <- cfa(cfa_formula, d)
+summary(cfa_fit, fit.measures = TRUE, standardized = TRUE)
+
+# Get the top modification indices
+round2 <- function(xs) round(xs, 2)
+
+mods <- cfa_fit %>% 
+  modindices(standardized = TRUE, power = TRUE, delta = 0.1, 
+             alpha = .05, high.power = .80) %>% 
+  as_data_frame %>% 
+  mutate_each(funs(round2), mi:power) %>% 
+  filter(op == "=~") %>% 
+  arrange(desc(mi))
+
+# Update the formula. lavaan combines equations together, apparently. Refit.
+cfa_formula2 <- paste0(cfa_formula, "\nTeaching =~ Q06 + Q11")
+cfa_fit2 <- cfa(cfa_formula2, d)
+summary(cfa_fit2, fit.measures = TRUE, standardized = TRUE)
+
+# Fit measures and model comparison for write-up
+fits <- fitmeasures(cfa_fit) %>% round(2) %>% as.list
+fits2 <- fitmeasures(cfa_fit2) %>% round(2) %>% as.list
+comp <- anova(cfa_fit, cfa_fit2)[2, ] %>% round(2) %>% as.list
+```
+
+```{r Formatters}
+# .34323243 as "34.32%"
+prop_as_percent <- . %>% multiply_by(100) %>% round(2) %>% paste0("%")
+
+# c("a", "b", "c") as c("a", "b", "and c")
+inject_and <- function(xs) { 
+  if (1 < length(xs)) {
+    c(head(xs, -1), paste("and", tail(xs, 1)))  
+  } else {
+    xs
+  }
+}
+
+# Want .10 to print with two digits
+two_digits <- . %>% sprintf("%.2f", .)
+
+# Don't print leading zero on bounded numbers like p-values or correlations
+remove_leading_zero <- function(xs) {
+  digit_matters <- xs %>% as.numeric %>% abs %>% is_greater_than(1)
+  # Don't get sloppy
+  if (any(digit_matters)) { 
+    warning("Non-zero leading digit")
+  }
+  str_replace(xs, "^(-?)0", "\\1")
+}
+
+# Want large factor loadings in bold
+bold_if_large <- function(xs, limit = .4) {
+  ifelse(limit <= as.numeric(xs), bold(xs), xs)
+}
+
+bold <- . %>% paste0("**", ., "**")
+
+format_loading <- . %>% 
+  two_digits %>% 
+  remove_leading_zero %>% 
+  bold_if_large
+```
+
+```{r Pretty Factor Loadings}
+codes <- item_df %>% select(Item = item, Description = code)
+
+# get loadings in echelon form
+tidy_loadings <- . %>% 
+  fa.sort %>% 
+  extract2("loadings") %>% 
+  unclass %>% 
+  round(2) %>% 
+  # item labels
+  as.data.frame %>% 
+  add_rownames("Item")
+
+pretty_print_loadings <- . %>% 
+  right_join(codes, .) %>% 
+  # bold large ones
+  mutate_each(funs(format_loading), -Item, -Description)
+```
+
+
+
+
+
+
+### Materials
+
+These data were collected as part of the Programme for International Student
+Assessment (PISA) 2012 survey. Specifically, sub-questionnaire SC34 asked school
+principals to report how often they performed certain leadership activities
+during the previous academic year. Respondants rated the frequency on a scale
+from 1 ("did not occur") to 6 ("more than once a week"). A subset of `r ncol(d)`
+items from SC34 were used in the present analysis. A complete list of survey
+items and scale levels are presented in Appendix A. The short-hand description
+of each item, used throughout this analysis are all defined in Appendix A.
+
+```{r}
+r_vers <- sprintf("%s.%s", R.version$major, R.version$minor)
+```
+
+All analyses were performed in `R` (vers. `r r_vers`). Exploratory factor 
+analysis was conducted using the `psych` package (vers. 
+`r packageVersion("psych")`), and confirmatory factor analysis was performed 
+using `lavaan` (vers. `r packageVersion("lavaan")`).
+
+
+### Participants
+
+Responses from `r nrow(d_raw)` school principals were collected for analysis. 
+Missing data (items without responses) were treated using listwise deletion, 
+yielding a final sample size of `r nrow(d)` and a participants-per-item ratio 
+of `r nrow(d) %/% ncol(d)`.
+
+### Exploratory factor analysis
+
+```{r}
+five_variances <- variances %>% 
+  head(5) %>% 
+  prop_as_percent %>% 
+  inject_and %>% 
+  paste0(collapse = ", ")
+
+pca_df <- data_frame(x = seq_along(eigenvalues), y = eigenvalues)
+
+p_scree <- 
+  ggplot(data = pca_df) +
+  aes(x = x, y = y) +
+  geom_hline(y = 1, linetype = "dashed") +
+  geom_point(size = 3) +
+  geom_line() +
+  labs(x = "Component",
+       y = "Eigenvalues of components") +
+  theme_bw()
+
+```
+
+We initially explored the factor structure of the data using principal 
+components analysis. The eigenvalue decomposition, shown in the scree-plot in 
+Figure 1, suggests that 3-4 factors may underlie the data. The first five 
+components respectively explained `r five_variances` of the variance.
+
+```{r, fig.cap = "Figure 1. Eigenvalue decomposition", fig.height=4, fig.width=5, fig.align='center'}
+p_scree
+```
+
+Next, we conducted a series of exploratory factor analyses, examining models 
+with 1, 2, 3, and 4 underlying factors. All analyses used promax (oblique) 
+rotation. The first series of analyses used principal axis factoring. A second 
+series used maximum likelihood in order to statistically test whether the 
+number of factors in each model was sufficient. Item Q07 ("discuss problems") 
+presented a Heywood case for the 2-factor models, so it was dropped from the 
+2- and 3-factor models.
+
+None of the maximum likelihood models provided an adequate fit of the items, 
+according to _&chi;_^2^ statistics. The measures of model fit for four maximum 
+likelihood models are presented in Table 1. 
+
+```{r, results = 'asis'}
+model_summary %>% 
+  rename(Factors = factors, 
+         Degrees = dof, 
+         `_&chi;_^2^` = STATISTIC, 
+         `_p_` = PVAL) %>% 
+  kable(align = "r", caption = "Table 1. Fit measures for the ML models")
+```
+
+The 4-factor model provided the best fit of the data. The loadings for the 
+maximum likelihood 4-factor are presented in Table 2. Similar tables for the 
+1-, 2- and 3-factor maximum likelihood models are presented in Appendix B. 
+
+```{r, results = 'asis'}
+fa_ml_4b %>% 
+  tidy_loadings %>% 
+  pretty_print_loadings %>% 
+  kable(caption = "Table 2. Factor loadings for 4-factor ML model",
+        align = c("l", "l", "r", "r", "r", "r"))
+```
+
+
+The factors for the four-factor model demonstrated face validity. That is, 
+items clustered together in somewhat coherent and interpretable way. The four 
+possible factors and items indicating each are listed below:
+
+- _Meeting culture:_ attend in-services, teachers share ideas, 
+  goals inform meetings, among others.
+- _Problem solving:_ discuss problems, solve problems together, 
+  develop socially, among others.
+- _Teaching practices:_ research based teaching and teachers follow goals.
+- _Oversight:_ review student work, evaluate staff performance and informal 
+  observation.
+
+The four factors were all moderated correlated with each other (range of 
+correlations: `r f_cor_range[1]`--`r f_cor_range[2]`). This factor structure is 
+plotted in Figure 2.
+
+```{r,  fig.cap = "Figure 2. Four-factor ML model", fig.width = 8, fig.height = 6, fig.align = 'center'}
+fa.diagram(fa_ml_4, simple = FALSE, adj = 2, digits = 2,  cut = .30,
+           e.size = 0.05, rsize = 0.35, 
+           marg = c(0, 2, 0, 0), main = "")
+```
+
+```{r, results='hide'}
+# In case we want to tweak the model's plot manually
+capture.output(fa.graph(fa_ml_4)) %>% 
+  c("# generated with capture.output(psych::fa.graph(...))", .) %>%
+  writeLines("assets/four_factor.gv")
+```
+
+Although these factors can be interpreted at face value, the 4-factor solution 
+did not neatly partition the items. The following items did not load 
+particularly strongly to any factor: continuous improvement, staff help decide, 
+and enhance reputation. Moreover, the following item had high loadings on more 
+than one factor: professional development follows goals, praise when students 
+active, and enhance reputation. These items suggest the need for possible 
+cross-loadings in later analyses.
+
+## Confirmatory Factor Analysis
+
+We performed a confirmatory factor analysis on the 4-factor model with a simple 
+structure. That is, each item acted as an indicator for exactly one factor. The 
+hypothesized model did not provide an overall adequate fit of the data, 
+_&chi;_^2^(`r fits$df`) = `r print(fits$chisq)`, _p_ < .001, 
+CFI = `r fits$cfi`, RMSEA CI = [`r fits$rmsea.ci.lower`,`r fits$rmsea.ci.upper`]. 
+
+Accordingly, we examined modification indices to determine which cross-loadings 
+would substantially improve model fit. As expected, items with strong secondary 
+loadings or with relatively weak primary loadings had large modification 
+indices. For example, "I praise teachers whose students are actively 
+participating in learning" primarily loaded onto the hypothetical 
+problem-solving factor, but model fit would improve substantially if it also 
+loaded on the teaching practices factor. This result was not surprising as this 
+item is ambiguous: Answers to this question might have tapped into the 
+importance of positive classroom environments and also of certain teaching 
+practices. 
+
+The item "I engage teachers to help build a school culture of continuous 
+improvement" very weakly loaded onto all four factors in the exploratory factor 
+analysis. As a result, this non-specific item had high modification indices as 
+an indicator of the factors related to teaching practices and "meeting culture".
+
+Therefore, we re-estimated the model allowing two cross-loadings: 1) "praise 
+when students active" as an indicator of the teaching practices factor, and 2) 
+"continuous-improvement" as indicator of teaching practices.
+
+```{r,  fig.cap = "Figure 3. Final factor structure", fig.width = 6, fig.height = 6, fig.align = 'center'}
+semPaths(cfa_fit2, whatLabels = "std", rotation = 2, optimizeLatRes = TRUE, 
+         centerLevels = FALSE, layout = "tree2", exoVar = FALSE, curvature = 2, 
+         nCharNodes = 10, sizeMan2 = 2)
+```
+
+The two added paths significantly improved model fit 
+&Delta;_&chi;_^2^(`r comp["Df diff"]`) = `r comp["Chisq diff"]`, _p_ < .001, 
+although the overall fit of this model was less than adequate, 
+_&chi;_^2^(`r fits2$df`) = `r print(fits2$chisq)`, _p_ < .001, 
+CFI = `r fits2$cfi`, RMSEA CI = [`r fits2$rmsea.ci.lower`,`r fits2$rmsea.ci.upper`]. 
+The updated model is shown in Figure 3. 
+
+The `lavaan` output for this model is presented in Appendix 3. We will not 
+interpret the results of model in detail because the model is not a good fit of 
+the data and some of the strongest item-factor loadings were mentioned in the 
+EFA section earlier.
+
+*** 
+
+## Appendix A: Items
+
+**Question stem**
+
+> `r code_book$test$stem`
+
+```{r, results = "asis"}
+responses <- code_book$test$choices %>% 
+  lapply(as_data_frame) %>% 
+  bind_rows %>% 
+  rename(Response = level, Value = value)
+
+kable(responses, caption = "Response options on SC34", format = "pandoc")
+```
+
+```{r, results = "asis"}
+print_item_df <- item_df %>% 
+  rename(Item = item, `Short Name` = code, Question = text)
+
+kable(print_item_df, caption = "Questions on SC34", format = "pandoc")
+```
+
+## Appendix B: Maximum Likelihood models
+
+```{r, results = 'asis'}
+fa_ml_1 %>% tidy_loadings %>% pretty_print_loadings %>% 
+   kable(caption = "Factor loadings for 1-factor ML model", format = "pandoc",
+        align = c("l", "l", "r"))
+
+fa_ml_2 %>% tidy_loadings %>% pretty_print_loadings %>% 
+   kable(caption = "Factor loadings for 2-factor ML model", format = "pandoc",
+        align = c("l", "l", "r", "r"))
+
+fa_ml_3 %>% tidy_loadings %>% pretty_print_loadings %>% 
+   kable(caption = "Factor loadings for 3-factor ML model", format = "pandoc",
+        align = c("l", "l", "r", "r", "r"))
+```
+
+## Appendix C: `lavaan` output for the final model
+
+```{r}
+summary(cfa_fit2, standardized = TRUE, fit.measures = TRUE)
+```
+
+
+## Appendix D: Analysis code
+
+```{r, ref.label="code", echo = TRUE, eval = FALSE}
+```
+

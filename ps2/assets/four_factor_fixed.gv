@@ -1,0 +1,58 @@
+# generated with capture.output(psych::fa.graph(...))
+digraph Factor  {
+  graph[rankdir=RL; size="6,8";]
+  node [fontname="Helvetica" fontsize=14 shape="box", width=2];
+  edge [fontname="Helvetica" fontsize=12];
+  V1  [label = "Q01"];
+  V2  [label = "Q02"];
+  V3  [label = "Q03"];
+  V4  [label = "Q04"];
+  V5  [label = "Q05"];
+  V6  [label = "Q06"];
+  V7  [label = "Q07"];
+  V8  [label = "Q08"];
+  V9  [label = "Q09"];
+  V10  [label = "Q10"];
+  V11  [label = "Q11"];
+  V12  [label = "Q12"];
+  V13  [label = "Q13"];
+  V14  [label = "Q14"];
+  V15  [label = "Q15"];
+  V16  [label = "Q17"];
+  V17  [label = "Q18"];
+  V18  [label = "Q19"];
+  V19  [label = "Q20"];
+  V20  [label = "Q22"];
+  node [shape=ellipse, width ="1"];
+  ML3 -> V2 [ label = 0.8 ];
+  ML3 -> V3 [ label = 0.7 ];
+  ML3 -> V12 [ label = 0.4 ];
+  ML3 -> V14 [ label = 0.7 ];
+  ML3 -> V15 [ label = 0.6 ];
+  ML3 -> V16 [ label = 0.9 ];
+  ML3 -> V17 [ label = 0.7 ];
+  ML2 -> V6 [ label = 0.4 ];
+  ML2 -> V7 [ label = 0.9 ];
+  ML2 -> V8 [ label = 0.6 ];
+  ML2 -> V9 [ label = 0.8 ];
+  ML2 -> V13 [ label = 0.9 ];
+  ML1 -> V1 [ label = 0.3 ];
+  ML1 -> V4 [ label = 0.8 ];
+  ML1 -> V5 [ label = 1 ];
+  ML1 -> V10 [ label = 0.3 ];
+  ML4 -> V18 [ label = 0.6 ];
+  ML4 -> V19 [ label = 0.8 ];
+  ML4 -> V20 [ label = 0.8 ];
+  ML2 -> ML3 [ label = 0.7 , dir="both" ];
+  ML1 -> ML3 [ label = 0.7 , dir="both" ];
+  ML1 -> ML2 [ label = 0.7 , dir="both" ];
+  ML4 -> ML3 [ label = 0.7 , dir="both" ];
+  ML4 -> ML2 [ label = 0.6 , dir="both" ];
+  ML4 -> ML1 [ label = 0.7 , dir="both" ];
+
+  {rank=same; V1;V2;V3;V4;V5;V6;V7;V8;V9;V10;V11;V12;V13;V14;V15;V16;V17;V18;V19;V20;}
+
+  # The original wouldn't render when it had to align all four factors in the same rank
+  {rank=same; ML1; ML4;}
+  {rank=same; ML3; ML2;}
+}
