@@ -56,7 +56,9 @@ codes$item_codes %>% lapply(as_data_frame) %>% bind_rows %>% kable
 
 ## Materials
 
-These data were collected as part of the PISA 2009 survey. Specifically, sub-questionnaire ST24 asked students to rate how often used various strategies while reading. 
+These data were collected as part of the PISA 2009 survey. Specifically,
+sub-questionnaire ST24 asked students to rate how often used various strategies
+while reading.
 
 ## Data Screening
 
