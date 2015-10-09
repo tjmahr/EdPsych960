@@ -1,0 +1,63 @@
+---
+
+test:
+  stem: "When you are studying, how often do you do the following? (Please tick only one box in each row.)"
+  choices:
+    - {level: Almost never, value: 1}
+    - {level: Sometimes, value: 2}
+    - {level: Often, value: 3}
+    - {level: Almost always, value: 4}
+
+item_codes:
+  - code: memo-everything
+    item: Q01
+    text: When I study, I try to memorize everything that is covered in the text.
+
+  - code: figure-out-needs
+    item: Q02
+    text: When I study, I start by figuring out what exactly I need to learn.
+
+  - code: memo-details
+    item: Q03
+    text: When I study, I try to memorize as many details as possible.
+
+  - code: other-subjects
+    item: Q04
+    text: When I study, I try to relate new information to prior knowledge acquired in other subjects.
+
+  - code: recite
+    item: Q05
+    text: When I study, I read the text so many times that I can recite it.
+
+  - code: check-understanding
+    item: Q06
+    text: When I study, I check if I understand what I have read.
+
+  - code: reread
+    item: Q07
+    text: When I study, I read the text over and over again.
+
+  - code: useful-elsewhere
+    item: Q08
+    text: When I study, I figure out how the information might be useful outside school.
+
+  - code: check-concepts
+    item: Q09
+    text: When I study, I try to figure out which concepts I still haven't really understood.
+
+  - code: relate-to-experiences
+    item: Q10
+    text: When I study, I try to understand the material better by relating it to my own experiences.
+
+  - code: memo-points
+    item: Q11
+    text: When I study, I make sure that I remember the most important points in the text.
+
+  - code: real-life
+    item: Q12
+    text: When I study, I figure out how the text information fits in with what happens in real life.
+
+  - code: look-for-info
+    item: Q13
+    text: When I study and I don't understand something, I look for additional information to clarify this.
+...

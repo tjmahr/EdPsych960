@@ -1,0 +1,327 @@
+---
+title: "Problem Set 3"
+author: "Tristan Mahr"
+date: "April 9, 2015"
+output:
+  html_document:
+    fig_caption: yes
+    keep_md: no
+  md_document:
+    variant: markdown_github
+---
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library("knitr")
+opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, 
+               fig.path = "assets/figure/")
+options(knitr.table.format = "markdown")
+if (interactive()) try(setwd("ps3"))
+```
+
+```{r}
+library("magrittr")
+library("dplyr")
+library("stringr")
+library("knitr")
+library("mice")
+library("yaml")
+library("lavaan")
+library("semTools")
+library("semPlot")
+library("ggplot2")
+
+source("utils.R")
+
+options(stringsAsFactors = FALSE, scipen = 999)
+
+sem_mlr_fiml <- function(...) sem(..., estimator = "MLR", missing = "ML")
+
+# 1. Read in the data and code missing as NA. For these data, missing is blank 
+# in the .csv file.
+d <- readr::read_csv("data/pisa09.csv") %>%
+  select(-starts_with("ST24"), -CSTRAT, -MEMOR, -ELAB, -(CNT:StIDStd)) %>%
+  rename(Gender = gender, Immig = immig2, Reading = rcomb1) %>%
+  # Rescale reading measure to prevent later warnings about variances
+  mutate(Reading = Reading / 100)
+names(d) <- str_replace(names(d), "ST27", "")
+
+d2 <- d %>% mutate_each(funs(ordered), starts_with("Q"))
+
+codes <- yaml.load_file("data/ps3_codes.yml")
+codes$item_codes %>% lapply(as_data_frame) %>% bind_rows %>% kable
+```
+
+
+
+## Materials
+
+These data were collected as part of the PISA 2009 survey. Specifically, sub-questionnaire ST24 asked students to rate how often used various strategies while reading. 
+
+## Data Screening
+
+```{r, cache = TRUE}
+m <- md.pattern(d)
+missing_matrix <- data_frame(Instances = row.names(m), nMissing = m[, ncol(m)])
+missing_matrix <- missing_matrix[-nrow(missing_matrix), ]
+
+missing_matrix <- missing_matrix %>% 
+  mutate(Instances =  as.numeric(str_trim(Instances)))
+counted_missing <- missing_matrix %>% count(nMissing, wt = Instances)
+
+counted_missing %>% 
+  rename(`N Responses Missing` = nMissing, `N Students` = n) %>% 
+  kable
+
+m[nrow(m), -ncol(m)] %>% 
+  as.list %>% 
+  as.data.frame %>% 
+  t %>% 
+  as.data.frame %>% 
+  add_rownames("Variable") %>% 
+  rename(`N Responses Missing` = V1) %>% 
+  kable
+
+n_complete <- d %>% na.omit %>% nrow
+n_possible <- nrow(d) * ncol(d)
+n_lost <- is.na(d) %>% sum
+```
+
+Since the analysis later on explores different ways of handling
+missing data, we first examine the completeness of the current data-set.
+
+A total of `r nrow(d)` students participated in the study. Complete data is only
+available for `r n_complete` students. Since `r ncol(d)` measurements were
+collected for each student, there were a total of `r nrow(d) * ncol(d)` possible
+responses; however, `r n_lost` responses are missing. Tables 1 and 2 break down
+the missing data patterns by counting the number of cases missing a given number
+of variables missing and the number of cases with missing each variable.
+
+## The Measurement Model
+
+```{r, cache = TRUE}
+# 2. Conduct ML factor analysis on the endogenous constructs. Present the
+# results, but do not modify the model. Use the MLR estimator and FIML for
+# handling missing data.
+# 
+# summary(m1, fit.measures = TRUE)
+# resid_cor <- resid(m1, "cor") %>% extract2("cor") %>% range
+# modindices(m1, sort. = TRUE)
+
+cfa_part <- "
+  MEMOR =~ Q01 + Q03 + Q05 + Q07
+  ELAB =~ Q04 + Q08 + Q10 + Q12
+  CSTRAT =~ Q02 + Q06 + Q09 + Q11 + Q13
+"
+m1 <- cfa(cfa_part, d, estimator = "MLR", missing = "ML")
+semPaths(m1, layout = "tree2", intercepts = FALSE, rotation = 1, 
+         optimizeLatRes = TRUE, whatLabels = "std")
+```
+
+We performed a confirmatory factor analysis on the measurement model presented
+in Figure 1. The model was fit using ML estimation with robust (Huber-White) 
+standard errors and full-information ML estimation to handle missing data. The
+model did not provide an adequate overall fit of the data, 
+`r pretty_model_fit(m1)`.
+
+Inspection of modification indices confirmed that the assignment of indicators
+to the three latent factors was sensible. Only two of the ten largest
+modification indices freed cross-factor loadings, cases where the model would be
+improved by allowing an indicator to load onto an additional factors.
+
+
+
+
+## Structural Model I
+
+```{r, cache = TRUE}
+# 3. Conduct a full SEM based on the initial model specification shown in the
+# path diagram. Use MLR and FIML to handle the missing data. Make a note of the
+# fit of the model.
+path_part <- "
+  Reading ~ MEMOR + ELAB + CSTRAT
+  MEMOR ~ ESCS + Gender
+  ELAB ~ ESCS + Gender + Immig
+  CSTRAT ~ ESCS + Gender + Immig
+"
+full_sem <- paste0(cfa_part, "\n", path_part)
+
+m2 <- sem(full_sem, d, estimator = "MLR", missing = "ML")
+# summary(m2, fit.measures = TRUE)
+```
+
+We next fit the structural equation model shown in Figure 2. As above, the 
+model was fit using a robust ML full-information estimator. The model did not 
+provide a satifactory overall fit of the data, `r pretty_model_fit(m2)`.
+
+```{r}
+semPaths(m2, intercepts = FALSE, rotation = 2)
+```
+
+
+## Structural Model II
+
+```{r}
+# 4. Inspect the modification indices for any structural paths that could be
+# freed.
+mi <- modindices(m2, sort. = TRUE, na.remove = TRUE, standardized = TRUE, 
+                 power = TRUE, delta = 0.1, alpha = .05, high.power = .80)
+
+# 5. Re-estimate the model based on the modification indices and present the
+# findings, including interpretations of the structural parameters. This would
+# be your final model.
+
+# details
+mod_1 <- "Q01 ~~ Q03"
+# re-reading
+mod_2 <- "Q05 ~~ Q07"
+# covariances among factors
+mod_3 <- "
+  MEMOR ~~ CSTRAT + ELAB
+  CSTRAT ~~ ELAB
+"
+
+# Added ESCS ~ Reading
+path_part2 <- "
+  Reading ~ MEMOR + ELAB + CSTRAT + ESCS
+  MEMOR ~ ESCS + Gender
+  ELAB ~ ESCS + Gender + Immig
+  CSTRAT ~ ESCS + Gender + Immig
+"
+
+paste_n <- function(...) { 
+  paste(..., sep = "\n") %>% 
+    str_replace_all("(\n)+", "\n")
+}
+
+m2_a_f <- paste_n(full_sem, mod_1)
+m2_b_f <- paste_n(full_sem, mod_1, mod_2)
+m2_c_f <- paste_n(full_sem, mod_1, mod_2, mod_3)
+m2_d_f <- paste_n(cfa_part, path_part2, mod_1, mod_2, mod_3)
+
+m2_a <- sem_mlr_fiml(m2_a_f, d)
+m2_b <- sem_mlr_fiml(m2_b_f, d)
+m2_c <- sem_mlr_fiml(m2_c_f, d)
+m2_d <- sem_mlr_fiml(m2_d_f, d)
+
+anova_df <- anova(m2, m2_a, m2_b, m2_c, m2_d)
+
+m3_fiml <- m2_d
+```
+
+
+We inspected the modification indices and added several paths to the structural 
+model. First, we freed covariances between the indicators of MEMOR concerning 
+remembering details of text (Q01 and Q03), 
+`r pretty_chi_delta(anova_df, "m2")`, and between indicators concerning
+re-reading text (Q03, Q05) `r pretty_chi_delta(anova_df, "m2_a")`. Next, we 
+freed the covariances among the three latent variables, 
+`r pretty_chi_delta(anova_df, "m2_b")`. Finally, we allowed ESCS to directly
+predict reading scores, `r pretty_chi_delta(anova_df, "m2_c")`. Each of these 
+paths signficantly improved model fit, although the overall model fit remained 
+inadequate, `r pretty_model_fit(m3_fiml)`. The final model is shown in Figure 3.
+
+```{r}
+semPaths(m3_fiml, intercepts = FALSE, rotation = 2)
+```
+
+We omit detailed interpretation of the path coefficients, since we performed a
+similar interpretation of the paths in a mediation analysis on Problem Set 1.
+In short, memorization and elaboration negatively predicted reading outcomes,
+while control strategies (pre-reading) were a positive predictor of reading.
+Gender predicted reading strategies such that girls had significantly higher
+memorization and control strategy factor scores. First- or second-generation
+immigrants showed significantly higher control strategies. ESCS positively
+predicted elaboration and control strategies, and it showed a significant
+direct effect on reading outcomes as well.
+
+
+### Alternative Estimators
+
+We now consider two alternative estimations of the above model. The first
+resolves missing data by using multiple imputation (5 iterations with predictive
+mean matching). The second resolves the model's fundamental flaw of treating the
+ordinal-scaled indicators as continuous measures by using WLSMV estimation
+(weighted least squares with mean- and variance-adjusted statistics). This
+technique, however, requires complete data, so it will require listwise deletion
+of missing data. (Our software was unable to use multiple imputation and WLSMV
+simultaneously.)
+
+In the plots below, we present the means and standard errors for four different
+models of various parameters.
+
+1. ML with listwise deletion
+2. Robust ML with listwise deletion
+3. Robust full-information ML
+4. Robust ML with multiple imputation
+5. WLSMV with listwise deletion
+
+From these plots, we readily appreciate that the maximum likelihood estimates
+are all quite similar and that the WLSMV provides significantly different
+estimates (insofar as the those SEs often do not overlap with the ML estimates).
+The standard errors do not appear to differ consistently from one another.
+
+
+```{r, cache = TRUE}
+m3 <- sem(m2_d_f, d, missing = "listwise")
+m3_listwise <- sem(m2_d_f, d, estimator = "MLR", missing = "listwise")
+mi_args <- list(method = "pmm")
+m3_pmm <- sem.mi(m2_d_f, d, estimator = "MLR", chi = "lmrr", 
+                 miArgs = mi_args, m = 5, miPackage = "mice")
+m3_wlsmv <- sem(m2_d_f, d2, estimator = "WLSMV", missing = "listwise")
+
+get_ests <- . %>% 
+  parameterEstimates %>% 
+  filter(!is.na(z), op != "~1") %>%
+  select(lhs:se) %>% 
+  mutate(term = paste0(lhs, op, rhs))
+
+mm_1  <- get_ests(m3) %>% 
+  mutate(Model = 1, ModelLab = "1. ML (Listwise)")
+
+mm_2  <- get_ests(m3_listwise) %>% 
+  mutate(Model = 2, ModelLab = "2. MLR (Listwise)")
+
+mm_3 <- get_ests(m3_fiml) %>%
+  mutate(Model = 3, ModelLab = "3. MLR (FIML)")
+
+mm_4 <- get_ests(m3_pmm) %>%
+  mutate(Model = 4, ModelLab = "4. MLR (PMM)")
+
+mm_5 <- get_ests(m3_wlsmv) %>%
+  mutate(Model = 5, ModelLab = "5. WLSMV (Listwise)")
+```
+
+```{r}
+estimates <- bind_rows(mm_1, mm_2, mm_3, mm_4, mm_5)
+regressions <- estimates %>% filter(op == "~")
+loadings <- estimates %>% filter(op == "=~")
+variances <- estimates %>% filter(op == "~~", lhs == rhs)
+covariances <- estimates %>% filter(op == "~~", lhs != rhs)
+
+p <- ggplot(regressions) + 
+  aes(x = Model, y = est, ymax = est+se, ymin = est-se, color = ModelLab) + 
+  geom_point() + 
+  geom_errorbar(width = .5) + 
+  theme_bw() + 
+  theme(legend.position = "top", axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(), panel.grid.minor.x	= element_blank()) +
+  labs(color = "Model")
+
+p1 <- p + facet_wrap("term", scales = "free_y")
+```
+
+
+### Regression estimates
+
+```{r}
+p1
+```
+
+
+### Factor loadings
+
+```{r}
+p2 <- p + facet_wrap("term") + theme()
+p2 %+% loadings
+```
