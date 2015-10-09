@@ -16,73 +16,12 @@ library("tidyr", warn.conflicts = FALSE)
 
 ## Tidiers
 
-# Create a data-frame with random effect variances and correlations
-tidy_ranef_summary <- function(model) {
-  vars <- tidy_lme4_variances(model)
-  cors <- tidy_lme4_covariances(model) %>% select(-vcov)
-
-  # Create some 1s for the diagonal of the correlation matrix
-  self_cor <- vars %>%
-    select(-vcov) %>%
-    mutate(var2 = var1, sdcor = 1.0) %>%
-    na.omit
-
-  # Spread out long-from correlations into a matrix
-  cor_matrix <- bind_rows(cors, self_cor) %>%
-    mutate(sdcor = fixed_digits(sdcor, 2)) %>%
-    spread(var1, sdcor) %>%
-    rename(var1 = var2)
-
-  left_join(vars, cor_matrix, by = c("grp", "var1"))
-}
-
-
-tidy_lme4_variances <- . %>%
-  VarCorr %>%
-  as.data.frame %>%
-  filter(is.na(var2)) %>%
-  select(-var2)
-
-
-tidy_lme4_covariances <- . %>%
-  VarCorr %>%
-  as.data.frame %>%
-  filter(!is.na(var2))
-
-
 # Make a data-frame from an anova object
 tidy_anova <- . %>%
   add_rownames("Model") %>%
   tbl_df %>%
   rename(p = `Pr(>Chisq)`, Chi_Df = `Df diff`, Chisq_diff = `Chisq diff`)
 
-
-# Extract fixed effects into a nice data-frame with naive p-values
-tidy_lme4 <- . %>%
-  tidy("fixed") %>%
-  mutate(p = normal_approx(statistic)) %>%
-  rename(Parameter = term, Estimate = estimate,
-         SE = std.error, t = statistic)
-
-
-# Rename variables from the main model using markdown
-fix_param_names <- . %>%
-  str_replace("Conditionneutral", "Neutral Cond.") %>%
-  str_replace("Conditionfacilitating", "Facilitating Cond.") %>%
-  str_replace("Conditionfiller", "Filler Cond.") %>%
-  str_replace("ot(\\d)", "Time^\\1^")  %>%
-  str_replace("Time.1.", "Time")  %>%
-  str_replace(":", " &times; ") %>%
-  str_replace(".Intercept.", "Intercept") %>%
-  str_replace("Subj", "Child")
-
-# Sort random effects groups, and make sure residual comes last
-sort_ranef_grps <- function(df) {
-  residual <- filter(df, grp == "Residual")
-  df %>% filter(grp != "Residual") %>%
-    arrange(grp) %>%
-    bind_rows(residual)
-}
 
 ## Formatters
 
