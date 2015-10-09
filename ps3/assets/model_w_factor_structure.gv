@@ -1,0 +1,155 @@
+
+digraph G {
+  # splines=line to prevent any curving
+  graph [overlap = true, fontname = "Helvetica", splines = line, ranksep = .25]
+  # Use small ranksep so edge from disturbance to indicator can be small. But
+  # later on, use large minlen on factor-to-indicator edge so edges won't be
+  # too small.
+
+  node  [fontname = "Helvetica"]
+  edge  [fontname = "Helvetica"]
+
+  # Draw the factors in a subgraph first
+  subgraph cluster_a {
+    label = "Factor Structure"
+    style = "dashed"
+
+    node [shape = oval]
+    elab memo cstrat
+
+    node [shape = square, fontsize = 10]
+    Q01
+    Q03
+    Q05
+    Q07
+
+    Q02
+    Q08
+    Q10
+    Q12
+
+    Q04
+    Q06
+    Q09
+    Q11
+    Q13
+
+
+    edge[minlen = 2]
+    memo -> Q01
+    memo -> Q03
+    memo -> Q05
+    memo -> Q07
+
+    elab -> Q02
+    elab -> Q08
+    elab -> Q10
+    elab -> Q12
+
+    cstrat -> Q04
+    cstrat -> Q06
+    cstrat -> Q09
+    cstrat -> Q11
+    cstrat -> Q13
+
+    # Invisible nodes beneath indicators for disturbances
+    node [style = invis; shape = square; width = 0; height = 0; fontsize = 0; label = ""]
+    edge[dir = "back"; minlen = 1]
+    Q02 -> d02
+    Q08 -> d08
+    Q10 -> d10
+    Q12 -> d12
+
+    Q01 -> d01
+    Q03 -> d03
+    Q05 -> d05
+    Q07 -> d07
+
+    Q04 -> d04
+    Q06 -> d06
+    Q09 -> d09
+    Q11 -> d11
+    Q13 -> d13
+
+    memo -> d_memo
+    elab -> d_elab
+    cstrat -> d_cstrat
+
+    # Use only two rows
+    {rank=same; memo elab cstrat d_memo, d_cstrat, d_elab}
+    {rank=same; Q01 Q03 Q05 Q07 Q02 Q08 Q10 Q12 Q04 Q06 Q09 Q11 Q13}
+
+  }
+
+  # The structural model has three left-to-right layers (input, mediators,
+  # reading). Put each layer in a subgraph. Crucially, list the edges in
+  # top-to-bottom order within each cluster
+  subgraph cluster_b1 {
+    node [shape = "box", fixedsize = true]
+    escs immigr gender
+
+    # make gender node jut out by using invisible edges
+    edge [style = "invis"]
+    escs:s -> gender:nw
+    gender:s -> immigr:ne
+
+    edge [minlen = 2, dir = "both", style = "dashed"]
+    escs:s -> gender:n
+    gender:s -> immigr:n
+    escs:sw -> immigr:nw [constraint = true]
+  }
+
+  subgraph cluster_b2 {
+    node [shape = "oval", style = dashed, fixedsize = true]
+    memo2 [label = "memo"];
+    elab2 [label = "elab"];
+    cstrat2 [label = "cstrat"];
+
+    edge [style = "invis", minlen = 0, dir = "forward"]
+    memo2 ->elab2 [minlen = 2]
+    elab2 -> cstrat2 [minlen = 2]
+
+  }
+
+  subgraph b3 {
+    reading [shape = "box"]
+
+    d_reading [style = invis; shape = square; width = 0; height = 0; fontsize = 0; label = ""]
+    d_reading -> reading
+
+  }
+
+  # Fix the three layers in the path model so they land above each factor
+  # input -> med -> output
+  # --|-------|-------|---
+  #   f1      f2      f3
+  edge [style = "invis", minlen = 3]
+  immigr:s -> memo:n
+  cstrat2 -> cstrat
+  reading -> elab  [minlen = 5]
+
+  # Make parallel nodes in each layer fall on same row
+  {rank=same; escs memo2}
+  {rank=same; gender elab2 reading}
+  {rank=same; immigr cstrat2}
+
+  # Use constraint=false so that the edge is not forced to be top-down
+  edge [style = "solid", minlen = 7, constraint = false]
+
+  escs -> memo2
+  escs -> elab2
+  escs -> cstrat2
+
+  elab2 -> reading
+  cstrat2 -> reading
+  memo2 -> reading
+
+  gender -> elab2
+  gender -> memo2
+  gender -> cstrat2
+
+  immigr -> elab2
+  immigr -> cstrat2
+
+}
+
