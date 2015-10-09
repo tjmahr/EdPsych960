@@ -2,7 +2,7 @@
 
 These data were collected as part of the Programme for International Student Assessment (PISA) 2012 survey. Specifically, sub-questionnaire SC34 asked school principals to report how often they performed certain leadership activities during the previous academic year. Respondants rated the frequency on a scale from 1 ("did not occur") to 6 ("more than once a week"). A subset of 20 items from SC34 were used in the present analysis. A complete list of survey items and scale levels are presented in Appendix A. The short-hand description of each item, used throughout this analysis are all defined in Appendix A.
 
-All analyses were performed in `R` (vers. 3.2.2). Exploratory factor analysis was conducted using the `psych` package (vers. 1.5.8), and confirmatory factor analysis was performed using `lavaan` (vers. 0.5.18).
+All analyses were performed in `R` (vers. 3.2.2). Exploratory factor analysis was conducted using the `psych` package (vers. 1.5.8), and confirmatory factor analysis was performed using `lavaan` (vers. 0.5.19).
 
 ### Participants
 
@@ -194,7 +194,7 @@ Appendix B: Maximum Likelihood models
 Appendix C: `lavaan` output for the final model
 -----------------------------------------------
 
-    ## lavaan (0.5-18) converged normally after  46 iterations
+    ## lavaan (0.5-19) converged normally after  46 iterations
     ## 
     ##   Number of observations                          4425
     ## 
@@ -234,14 +234,14 @@ Appendix C: `lavaan` output for the final model
     ## 
     ##   SRMR                                           0.061
     ## 
-    ## Parameter estimates:
+    ## Parameter Estimates:
     ## 
     ##   Information                                 Expected
     ##   Standard Errors                             Standard
     ## 
-    ##                    Estimate  Std.err  Z-value  P(>|z|)   Std.lv  Std.all
-    ## Latent variables:
-    ##   Culture =~
+    ## Latent Variables:
+    ##                    Estimate  Std.Err  Z-value  P(>|z|)   Std.lv  Std.all
+    ##   Culture =~                                                            
     ##     Q17               1.000                               0.862    0.718
     ##     Q02               1.167    0.024   48.095    0.000    1.005    0.752
     ##     Q18               1.015    0.022   45.204    0.000    0.874    0.707
@@ -249,18 +249,18 @@ Appendix C: `lavaan` output for the final model
     ##     Q03               1.063    0.023   45.909    0.000    0.916    0.718
     ##     Q15               1.224    0.023   53.052    0.000    1.055    0.830
     ##     Q12               1.242    0.028   44.626    0.000    1.070    0.698
-    ##   Oversight =~
+    ##   Oversight =~                                                          
     ##     Q20               1.000                               1.233    0.763
     ##     Q22               0.911    0.019   47.047    0.000    1.124    0.735
     ##     Q19               0.801    0.016   51.171    0.000    0.988    0.803
     ##     Q11               0.176    0.021    8.477    0.000    0.216    0.201
-    ##   Solving =~
+    ##   Solving =~                                                            
     ##     Q07               1.000                               1.025    0.900
     ##     Q13               0.906    0.013   72.221    0.000    0.928    0.830
     ##     Q09               0.632    0.015   43.331    0.000    0.648    0.592
     ##     Q08               1.031    0.015   68.520    0.000    1.057    0.805
     ##     Q06               0.425    0.020   20.760    0.000    0.436    0.365
-    ##   Teaching =~
+    ##   Teaching =~                                                           
     ##     Q05               1.000                               1.112    0.794
     ##     Q04               0.886    0.016   55.346    0.000    0.985    0.775
     ##     Q01               0.607    0.015   40.462    0.000    0.675    0.596
@@ -269,41 +269,43 @@ Appendix C: `lavaan` output for the final model
     ##     Q11               0.579    0.023   24.902    0.000    0.644    0.599
     ## 
     ## Covariances:
-    ##   Culture ~~
+    ##                    Estimate  Std.Err  Z-value  P(>|z|)   Std.lv  Std.all
+    ##   Culture ~~                                                            
     ##     Oversight         0.770    0.026   29.265    0.000    0.725    0.725
     ##     Solving           0.619    0.020   31.022    0.000    0.701    0.701
     ##     Teaching          0.788    0.025   32.005    0.000    0.823    0.823
-    ##   Oversight ~~
+    ##   Oversight ~~                                                          
     ##     Solving           0.869    0.028   30.761    0.000    0.688    0.688
     ##     Teaching          1.084    0.034   31.645    0.000    0.791    0.791
-    ##   Solving ~~
+    ##   Solving ~~                                                            
     ##     Teaching          0.848    0.025   33.334    0.000    0.744    0.744
     ## 
     ## Variances:
-    ##     Q17               0.697    0.016                      0.697    0.484
-    ##     Q02               0.776    0.019                      0.776    0.435
-    ##     Q18               0.765    0.018                      0.765    0.500
-    ##     Q14               0.463    0.011                      0.463    0.457
-    ##     Q03               0.788    0.019                      0.788    0.485
-    ##     Q15               0.502    0.014                      0.502    0.311
-    ##     Q12               1.206    0.028                      1.206    0.513
-    ##     Q20               1.092    0.030                      1.092    0.418
-    ##     Q22               1.073    0.028                      1.073    0.459
-    ##     Q19               0.536    0.017                      0.536    0.355
-    ##     Q11               0.474    0.011                      0.474    0.410
-    ##     Q07               0.246    0.009                      0.246    0.190
-    ##     Q13               0.390    0.011                      0.390    0.312
-    ##     Q09               0.777    0.017                      0.777    0.649
-    ##     Q08               0.608    0.016                      0.608    0.353
-    ##     Q06               0.504    0.012                      0.504    0.354
-    ##     Q05               0.724    0.019                      0.724    0.369
-    ##     Q04               0.644    0.016                      0.644    0.399
-    ##     Q01               0.825    0.019                      0.825    0.644
-    ##     Q10               0.597    0.015                      0.597    0.420
-    ##     Culture           0.742    0.028                      1.000    1.000
-    ##     Oversight         1.520    0.054                      1.000    1.000
-    ##     Solving           1.050    0.028                      1.000    1.000
-    ##     Teaching          1.236    0.040                      1.000    1.000
+    ##                    Estimate  Std.Err  Z-value  P(>|z|)   Std.lv  Std.all
+    ##     Q17               0.697    0.016   42.314    0.000    0.697    0.484
+    ##     Q02               0.776    0.019   41.253    0.000    0.776    0.435
+    ##     Q18               0.765    0.018   42.606    0.000    0.765    0.500
+    ##     Q14               0.463    0.011   41.755    0.000    0.463    0.457
+    ##     Q03               0.788    0.019   42.318    0.000    0.788    0.485
+    ##     Q15               0.502    0.014   37.150    0.000    0.502    0.311
+    ##     Q12               1.206    0.028   42.826    0.000    1.206    0.513
+    ##     Q20               1.092    0.030   35.991    0.000    1.092    0.418
+    ##     Q22               1.073    0.028   37.759    0.000    1.073    0.459
+    ##     Q19               0.536    0.017   32.478    0.000    0.536    0.355
+    ##     Q11               0.474    0.011   41.439    0.000    0.474    0.410
+    ##     Q07               0.246    0.009   27.202    0.000    0.246    0.190
+    ##     Q13               0.390    0.011   36.604    0.000    0.390    0.312
+    ##     Q09               0.777    0.017   44.604    0.000    0.777    0.649
+    ##     Q08               0.608    0.016   38.460    0.000    0.608    0.353
+    ##     Q06               0.504    0.012   41.805    0.000    0.504    0.354
+    ##     Q05               0.724    0.019   38.350    0.000    0.724    0.369
+    ##     Q04               0.644    0.016   39.413    0.000    0.644    0.399
+    ##     Q01               0.825    0.019   44.306    0.000    0.825    0.644
+    ##     Q10               0.597    0.015   40.059    0.000    0.597    0.420
+    ##     Culture           0.742    0.028   26.770    0.000    1.000    1.000
+    ##     Oversight         1.520    0.054   28.095    0.000    1.000    1.000
+    ##     Solving           1.050    0.028   37.434    0.000    1.000    1.000
+    ##     Teaching          1.236    0.040   30.719    0.000    1.000    1.000
 
 Appendix D: Analysis code
 -------------------------

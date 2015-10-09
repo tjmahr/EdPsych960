@@ -1,1 +1,1 @@
-rmarkdown::render("ps1.Rmd", "all")
+rmarkdown::render("ps1/ps1.Rmd", "all")
